@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-//采用canvas.translate();计算
 public class CodeEdit extends View {
     //文本
     private List<String> textList = new ArrayList<String>();
