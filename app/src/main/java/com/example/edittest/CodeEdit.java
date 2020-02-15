@@ -15,6 +15,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
@@ -76,7 +77,21 @@ public class CodeEdit extends View {
         //手势监听
         gdl = new GDListener();
         gestureDetector = new GestureDetector(context, gdl);
-
+        //输入法状态监听
+        this.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                //确定是否上移
+                int softHeight = getSoftKeyboardHeight();
+                int heig=lineHeight*(cursorRowIndex+1);
+                int heig_low=heig+viewY+lineHeightDescent;
+                int heig_d=getHeight()-softHeight;
+                if (heig_low>heig_d){
+                    viewY=viewY-(heig_low-heig_d);
+                    postInvalidate();
+                }
+            }
+        });
         setFocusable(true);
         setFocusableInTouchMode(true);
         //防止越界
@@ -291,9 +306,6 @@ public class CodeEdit extends View {
                 //打开输入法
                 InputMethodManager inputMethodManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                 inputMethodManager.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
-                //if (ic!=null) ic.beginBatchEdit();
-                //确定是否上移
-
             } else {
                 float x = e.getX();
                 float y = e.getY();
