@@ -144,23 +144,8 @@ public class CodeEdit extends View {
     //输入法
     private class IC extends BaseInputConnection {
 
-        private int be;
         public IC(View targetView, boolean fullEditor) {
             super(targetView, fullEditor);
-            be=0;
-        }
-
-        @Override
-        public boolean beginBatchEdit() {
-            be++;
-            return be>0;
-        }
-
-        @Override
-        public boolean endBatchEdit() {
-            be--;
-            if (be<0) be=0;
-            return be>0;
         }
 
         @Override
