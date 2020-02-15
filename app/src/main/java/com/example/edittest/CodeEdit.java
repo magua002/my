@@ -1,6 +1,8 @@
 package com.example.edittest;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -20,9 +22,11 @@ import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -165,8 +169,6 @@ public class CodeEdit extends View {
 
         @Override
         public boolean commitText(CharSequence text, int newCursorPosition) {
-            Toast.makeText(getContext(), "text:" + text, Toast.LENGTH_SHORT).show();
-            Log.d("commitText", "text:" + text + "___newCursorPosition:" + newCursorPosition);
             if (cursorPositionInRowIndex == -1) {
                 Log.d("提交", "第一情况");
                 textList.set(cursorRowIndex, String.valueOf(text));
@@ -350,12 +352,16 @@ public class CodeEdit extends View {
 
         @Override
         public void onLongPress(MotionEvent e) {
-
+            AlertDialog.Builder builder=new AlertDialog.Builder(getContext());
+            builder.setTitle("操作");
+            builder.setView(R.layout.long_press);
+            builder.show();
         }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             return true;
+
         }
 
         //计算光标处于哪一个位置
@@ -398,7 +404,8 @@ public class CodeEdit extends View {
         if (startRow > maxLine) return;
         int stopIndex = (getHeight() / lineHeight) + 1;
         if ((maxLine - startRow) > stopIndex) {
-            stopRow = startRow + stopRow;
+            stopRow = startRow + stopIndex;
+            /*stopRow=stopRow>maxLine?maxLine:stopRow;*/
         } else {
             stopRow = maxLine;
         }
@@ -445,5 +452,13 @@ public class CodeEdit extends View {
             String text = textList.get(i);
             canvas.drawText(text, 0, (i + 1) * lineHeight, paint);
         }
+    }
+
+    //粘贴
+    private void paste(){
+        ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData data = cm.getPrimaryClip();
+        ClipData.Item item = data.getItemAt(0);
+        String text = item.getText().toString();
     }
 }
