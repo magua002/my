@@ -29,10 +29,6 @@ import android.view.inputmethod.InputMethodManager;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -108,17 +104,6 @@ public class CodeEdit extends View {
         //防止越界
         textList.add("");
 
-        try {
-            InputStream inputStream=getResources().getAssets().open("CodeEdit.java");
-            InputStreamReader inputStreamReader=new InputStreamReader(inputStream);
-            BufferedReader bufferedReader=new BufferedReader(inputStreamReader);
-            String line=null;
-            while ((line=bufferedReader.readLine())!=null){
-                textList.add(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private void initPaint() {
@@ -190,8 +175,7 @@ public class CodeEdit extends View {
         public boolean commitText(CharSequence text, int newCursorPosition) {
             if (cursorPositionInRowIndex == -1) {
                 Log.d("提交", "第一情况");
-                String curText = textList.get(cursorRowIndex);
-                textList.set(cursorRowIndex, text+curText);
+                textList.set(cursorRowIndex, String.valueOf(text));
             } else {
                 Log.d("提交", "第二情况");
                 String curText = textList.get(cursorRowIndex);
@@ -366,14 +350,11 @@ public class CodeEdit extends View {
                 isDirection = Math.abs(distanceY) > Math.abs(distanceX) ? true : false;
                 isFirstMove = true;
             }
-
             if (isDirection) viewY -= distanceY;
             else viewX -= distanceX;
 
             if (viewX >= 0) viewX = 0;
             if (viewY >= 0) viewY = 0;
-
-            if (textList.size()*lineHeight-100<-viewY) viewY=-(textList.size()*lineHeight-100);
 
             invalidate();
             return true;
