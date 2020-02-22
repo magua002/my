@@ -67,6 +67,8 @@ public class CodeEdit extends View {
     private int lineHeightDescent;
     //开始行，结束行
     private int startRow, stopRow;
+    //当前显示的最长行
+    private String curMaxLine = "";
     //手势监听
     private GDListener gdl;
     private GestureDetector gestureDetector;
@@ -103,17 +105,17 @@ public class CodeEdit extends View {
                 }
             }
         });
+        //焦点
         setFocusable(true);
         setFocusableInTouchMode(true);
         //防止越界
         textList.add("");
-
         try {
-            InputStream inputStream=getResources().getAssets().open("CodeEdit.java");
-            InputStreamReader inputStreamReader=new InputStreamReader(inputStream);
-            BufferedReader bufferedReader=new BufferedReader(inputStreamReader);
-            String line=null;
-            while ((line=bufferedReader.readLine())!=null){
+            InputStream inputStream = getResources().getAssets().open("CodeEdit.java");
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            String line = null;
+            while ((line = bufferedReader.readLine()) != null) {
                 textList.add(line);
             }
         } catch (IOException e) {
@@ -191,7 +193,7 @@ public class CodeEdit extends View {
             if (cursorPositionInRowIndex == -1) {
                 Log.d("提交", "第一情况");
                 String curText = textList.get(cursorRowIndex);
-                textList.set(cursorRowIndex, text+curText);
+                textList.set(cursorRowIndex, text + curText);
             } else {
                 Log.d("提交", "第二情况");
                 String curText = textList.get(cursorRowIndex);
@@ -353,7 +355,7 @@ public class CodeEdit extends View {
                 if (realX > w) {
                     cursorPositionInRowIndex = curText.length() - 1;
                 } else {
-                    cursorPositionInRowIndex = getCursorPositionInRowIndex(curText, realX, paint) + 1;
+                    cursorPositionInRowIndex = getCursorPositionInRowIndex(curText, realX, paint);
                 }
             }
             postInvalidate();
@@ -366,14 +368,18 @@ public class CodeEdit extends View {
                 isDirection = Math.abs(distanceY) > Math.abs(distanceX) ? true : false;
                 isFirstMove = true;
             }
-
             if (isDirection) viewY -= distanceY;
             else viewX -= distanceX;
 
+            if (textList.size() * lineHeight - 100 < -viewY)
+                viewY = -(textList.size() * lineHeight - 100);
+            Paint paint=paintMap.get("默认");
+            float maxLineWidth=paint.measureText(curMaxLine);
+            if (maxLineWidth-tranX-100<-viewX)
+                viewX=-(int) (maxLineWidth-tranX-100);
+
             if (viewX >= 0) viewX = 0;
             if (viewY >= 0) viewY = 0;
-
-            if (textList.size()*lineHeight-100<-viewY) viewY=-(textList.size()*lineHeight-100);
 
             invalidate();
             return true;
@@ -389,13 +395,13 @@ public class CodeEdit extends View {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            Log.d("onFling","x:"+velocityX+",y:"+velocityY);
             return true;
-
         }
 
         //计算光标处于哪一个位置
         private int getCursorPositionInRowIndex(String curText, float realX, Paint paint) {
-            if (paint.measureText(String.valueOf(curText.charAt(0))) > realX) {
+            /*if (paint.measureText(String.valueOf(curText.charAt(0))) > realX) {
                 return -1;
             }
             for (int i = 2; i <= curText.length(); i++) {
@@ -403,21 +409,34 @@ public class CodeEdit extends View {
                     return i - 2;
                 }
             }
-            return -1;
+            return -1;*/
+            char[] chars = curText.toCharArray();
+            float len = 0f;
+            int index = -1;
+            for (char c : chars) {
+                float c_l = paint.measureText(String.valueOf(c));
+                if (len + c_l / 2 > realX) {
+                    break;
+                } else {
+                    len = len + c_l;
+                    index++;
+                }
+            }
+            return index;
         }
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        Log.d("onSizeChanged","x:"+viewX+",y:"+viewY);
+        Log.d("onSizeChanged", "x:" + viewX + ",y:" + viewY);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         //背景图
-        drawBackgroundImage(canvas);
+        //drawBackgroundImage(canvas);
         //在背景图上铺一层半透明，不然看不清，本来想直接在图片上弄的，但是不会
-        canvas.drawColor(Color.argb(100, 255, 255, 255));
+        //canvas.drawColor(Color.argb(100, 255, 255, 255));
         //计算开始和结束行
         computeStartAndStop();
         //偏移到指定位置
@@ -461,15 +480,15 @@ public class CodeEdit extends View {
             float scale = 0f;
             Matrix matrix = new Matrix();
             if (imageW < imageH) {
-                scale=imageH<getHeight()?getHeight() / imageH:imageH/getHeight();
+                scale = imageH < getHeight() ? getHeight() / imageH : imageH / getHeight();
                 float i_w = imageW * scale;
                 startImageX = Math.abs(i_w - getWidth()) / 2 / scale;
-                image_W=imageW-startImageX*2;
+                image_W = imageW - startImageX * 2;
             } else {
-                scale=imageW<getWidth()?getWidth()/imageW:imageW/getWidth();
+                scale = imageW < getWidth() ? getWidth() / imageW : imageW / getWidth();
                 float i_h = imageH * scale;
                 startImageY = Math.abs(i_h - getHeight()) / 2 / scale;
-                image_H=imageH-startImageY*2;
+                image_H = imageH - startImageY * 2;
             }
 
             matrix.setScale(scale, scale);
@@ -520,6 +539,12 @@ public class CodeEdit extends View {
         for (int i = startRow; i <= stopRow; i++) {
             String text = textList.get(i);
             canvas.drawText(text, 0, (i + 1) * lineHeight, paint);
+            //觉得量行宽太麻烦，直接每行字符数差不多得了
+            if (i == startRow) {
+                curMaxLine = text;
+            } else if (curMaxLine.length() < text.length()) {
+                curMaxLine = text;
+            }
         }
     }
 
