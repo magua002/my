@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,8 @@ public class CodeEdit extends View {
     private int cursorRowIndex = 0;
     //光标在每一行中的位置
     private int cursorPositionInRowIndex = -1;
+    //光标viewX
+    //private float cursorViewX=0f;//本来想避免重复计算，但是不行
     //光标闪烁时间，毫秒
     private int cursorFlashTime = 500;
     //光标闪烁标识
@@ -69,11 +72,19 @@ public class CodeEdit extends View {
     private int startRow, stopRow;
     //当前显示的最长行
     private String curMaxLine = "";
+    //被选中文本，第一选中行，第一选中列，第二选中行，第二选中列
+    private int firstSelectRow = -2;
+    private int firstSelectCol = -2;
+    private int secondSelectRow = -2;
+    private int secondSelectCol = -2;
     //手势监听
     private GDListener gdl;
     private GestureDetector gestureDetector;
     //背景图片
     Bitmap bitmap;
+
+    //java字符
+    private final char[] javaChars = " \n!~`@#$%^&*()_-+={}|[]:\";'<>?,./".toCharArray();
 
     private IC ic;
 
@@ -83,7 +94,9 @@ public class CodeEdit extends View {
 
     public CodeEdit(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        //加载画笔
         initPaint();
+        //计算行高
         computeLineHeight();
         //光标闪烁
         cursorFlash();
@@ -109,7 +122,7 @@ public class CodeEdit extends View {
         setFocusable(true);
         setFocusableInTouchMode(true);
         //防止越界
-        textList.add("");
+        //textList.add("");
         try {
             InputStream inputStream = getResources().getAssets().open("CodeEdit.java");
             InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
@@ -208,7 +221,6 @@ public class CodeEdit extends View {
                 textList.set(cursorRowIndex, stringBuffer.toString());
             }
             cursorPositionInRowIndex += text.length();
-            Log.d("commitText", "cursorPositionInRowIndex->" + cursorPositionInRowIndex);
             postInvalidate();
             return true;
         }
@@ -224,6 +236,11 @@ public class CodeEdit extends View {
                         break;
                     //回车键
                     case KeyEvent.KEYCODE_ENTER:
+                        //选中文本处理
+                        if (isSelectedText()){
+                            deleteSelectText();
+                            deselectText();
+                        }
                         //防止处理字符串时越界
                         String curText = textList.get(cursorRowIndex);
                         if (cursorPositionInRowIndex > -1 && cursorPositionInRowIndex < curText.length() - 1) {
@@ -261,7 +278,7 @@ public class CodeEdit extends View {
                         }
                         break;
                 }
-                postInvalidate();
+                invalidate();
             }
             return true;
         }
@@ -269,12 +286,21 @@ public class CodeEdit extends View {
         @Override
         public boolean deleteSurroundingText(int beforeLength, int afterLength) {
             deleteText();
-            postInvalidate();
+            invalidate();
             return true;
         }
 
         //自己加的一个处理删除的方法
         private void deleteText() {
+            //如果处于选中文本状态
+            if (isSelectedText()){
+                //删除选中文本
+                deleteSelectText();
+                //取消选中状态
+                deselectText();
+                return;
+            }
+
             String curText = textList.get(cursorRowIndex);
             if (cursorRowIndex == 0 && cursorPositionInRowIndex == -1) {
                 Log.d("删除", "第一情况");
@@ -336,34 +362,38 @@ public class CodeEdit extends View {
                 //打开输入法
                 InputMethodManager inputMethodManager = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                 inputMethodManager.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
-            } else {
             }
-            float x = e.getX();
-            float y = e.getY();
-            //确定选中的是哪一行
-            int index = (int) ((Math.abs(viewY) + y - lineHeightDescent) / lineHeight);
-            int maxLine = textList.size() - 1;
-            cursorRowIndex = index > maxLine ? maxLine : index;
-            //确定选中的是哪一个字
-            String curText = textList.get(cursorRowIndex);
-            if (TextUtils.isEmpty(curText)) {
-                cursorPositionInRowIndex = -1;
-            } else {
-                Paint paint = paintMap.get("默认");
-                float w = paint.measureText(curText);
-                float realX = Math.abs(viewX) + x - tranX;
-                if (realX > w) {
-                    cursorPositionInRowIndex = curText.length() - 1;
+
+            //在非选中本文状态，才会更新光标位置
+            if (!isSelectedText()) {
+                float x = e.getX();
+                float y = e.getY();
+                //确定选中的是哪一行
+                int index = (int) ((Math.abs(viewY) + y - lineHeightDescent) / lineHeight);
+                int maxLine = textList.size() - 1;
+                cursorRowIndex = index > maxLine ? maxLine : index;
+                //确定选中的是哪一个字
+                String curText = textList.get(cursorRowIndex);
+                if (TextUtils.isEmpty(curText)) {
+                    cursorPositionInRowIndex = -1;
                 } else {
-                    cursorPositionInRowIndex = getCursorPositionInRowIndex(curText, realX, paint);
+                    Paint paint = paintMap.get("默认");
+                    float w = paint.measureText(curText);
+                    float realX = Math.abs(viewX) + x - tranX;
+                    if (realX > w) {
+                        cursorPositionInRowIndex = curText.length() - 1;
+                    } else {
+                        cursorPositionInRowIndex = getCursorPositionInRowIndex(curText, realX, paint);
+                    }
                 }
+                postInvalidate();
             }
-            postInvalidate();
             return true;
         }
 
-        @Override
+        @Override//e1是第一次触摸，e2是当前
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+
             if (!isFirstMove) {
                 isDirection = Math.abs(distanceY) > Math.abs(distanceX) ? true : false;
                 isFirstMove = true;
@@ -373,10 +403,10 @@ public class CodeEdit extends View {
 
             if (textList.size() * lineHeight - 100 < -viewY)
                 viewY = -(textList.size() * lineHeight - 100);
-            Paint paint=paintMap.get("默认");
-            float maxLineWidth=paint.measureText(curMaxLine);
-            if (maxLineWidth-tranX-100<-viewX)
-                viewX=-(int) (maxLineWidth-tranX-100);
+            Paint paint = paintMap.get("默认");
+            float maxLineWidth = paint.measureText(curMaxLine);
+            if (maxLineWidth - tranX - 100 < -viewX)
+                viewX = -(int) (maxLineWidth - tranX - 100);
 
             if (viewX >= 0) viewX = 0;
             if (viewY >= 0) viewY = 0;
@@ -387,29 +417,22 @@ public class CodeEdit extends View {
 
         @Override
         public void onLongPress(MotionEvent e) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            /*AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setTitle("操作");
             builder.setView(R.layout.long_press);
-            builder.show();
+            builder.show();*/
+            longPressSelectText(e);
+            if (isSelectedText()) invalidate();
         }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            Log.d("onFling","x:"+velocityX+",y:"+velocityY);
+            Log.d("onFling", "x:" + velocityX + ",y:" + velocityY);
             return true;
         }
 
         //计算光标处于哪一个位置
         private int getCursorPositionInRowIndex(String curText, float realX, Paint paint) {
-            /*if (paint.measureText(String.valueOf(curText.charAt(0))) > realX) {
-                return -1;
-            }
-            for (int i = 2; i <= curText.length(); i++) {
-                if (paint.measureText(curText.substring(0, i)) > realX) {
-                    return i - 2;
-                }
-            }
-            return -1;*/
             char[] chars = curText.toCharArray();
             float len = 0f;
             int index = -1;
@@ -422,8 +445,129 @@ public class CodeEdit extends View {
                     index++;
                 }
             }
+            //cursorViewX=len;
             return index;
         }
+
+        //长按选择文本
+        private void longPressSelectText(MotionEvent event) {
+            float x = event.getX();
+            float y = event.getY();
+            //确定选中的是哪一行
+            int index = (int) ((Math.abs(viewY) + y - lineHeightDescent) / lineHeight);
+            int maxLine = textList.size() - 1;
+            //cursorRowIndex = index > maxLine ? maxLine : index;
+            //如果长按位置不在某一行上，则不进行任何操作
+            if (index > maxLine) return;
+            //确定选中的是哪一个字
+            String curText = textList.get(index);
+            if (TextUtils.isEmpty(curText)) {
+                //如果选中该行为空，不进行任何操作
+                return;
+            } else {
+                firstSelectRow = index;
+                secondSelectRow = index;
+                cursorRowIndex = index;
+                Paint paint = paintMap.get("默认");
+                float w = paint.measureText(curText);
+                float realX = Math.abs(viewX) + x - tranX;
+                int indexCol;
+                if (realX > w) {
+                    //若没选中字，则不进行任何操作,并取消选中
+                    deselectText();
+                    return;
+                } else {
+                    indexCol = getCursorPositionInRowIndex(curText, realX, paint);
+
+                    if (indexCol == -1) {
+                        deselectText();
+                        return;
+                    }
+
+                    firstSelectCol = indexCol - 1;
+                    secondSelectCol = indexCol;
+                    //向前
+                    for (int i = indexCol - 1; i >= 0; i--) {
+                        if (isJavaChar(curText.charAt(i))) {
+                            break;
+                        }
+                        firstSelectCol--;
+                    }
+                    //向后
+                    for (int i = indexCol + 1; i < curText.length(); i++) {
+                        if (isJavaChar(curText.charAt(i))) {
+                            break;
+                        }
+                        secondSelectCol++;
+                    }
+                    cursorPositionInRowIndex = secondSelectCol;
+                }
+            }
+        }
+    }
+
+    //是否选中了文本
+    private boolean isSelectedText() {
+        return !(firstSelectRow == -2 &&
+                firstSelectCol == -2 &&
+                secondSelectRow == -2 &&
+                secondSelectCol == -2);
+    }
+
+    //取消选中文本,在完成任何改变文本的操作后都要取消选中文本
+    private void deselectText() {
+        firstSelectRow = firstSelectCol = secondSelectRow = secondSelectCol = -2;
+    }
+
+    //删除选中文本
+    private void deleteSelectText() {
+        if (!isSelectedText()) return;
+        if (firstSelectRow == secondSelectRow) {
+            String selectRowText = textList.get(firstSelectRow);
+            char[] chars = selectRowText.toCharArray();
+            StringBuffer stringBuffer = new StringBuffer();
+            for (int i = 0; i < chars.length; i++) {
+                if (i > firstSelectCol && i <= secondSelectCol) continue;
+                stringBuffer.append(chars[i]);
+            }
+            textList.set(firstSelectRow, stringBuffer.toString());
+        } else {
+            String firstRowText = null;
+            String secondRowText = null;
+            String line = null;
+            Collection<String> collection = new ArrayList<>();
+            for (int i = firstSelectRow; i <= secondSelectRow; i++) {
+                line = textList.get(i);
+                if (i == firstSelectRow) {
+                    firstRowText = line;
+                    continue;//第一行不删
+                } else if (i == secondSelectRow) {
+                    secondRowText = line;
+                }
+                collection.add(line);
+            }
+            textList.removeAll(collection);
+            secondRowText = secondRowText.substring(secondSelectCol + 1, secondRowText.length());
+            if (firstSelectCol == -1) {
+                textList.set(firstSelectRow, secondRowText);
+            } else {
+                firstRowText = firstRowText.substring(0, firstSelectCol + 1);
+                textList.set(firstSelectRow, firstRowText + secondRowText);
+            }
+        }
+        //删除后更新光标位置
+        cursorRowIndex=firstSelectRow;
+        cursorPositionInRowIndex=firstSelectCol;
+    }
+
+    //是不是Java符号
+    private boolean isJavaChar(char cc) {
+        for (char c : javaChars) {
+            if (c == cc) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -447,6 +591,8 @@ public class CodeEdit extends View {
         drawRowNumber(canvas);
         //先画行号再偏移文本
         canvas.translate(tranX, 0);
+        //画选中文本
+        if (isSelectedText()) drawSelectTextRect(canvas);
         //画文本
         drawText(canvas);
         //光标闪烁
@@ -502,7 +648,11 @@ public class CodeEdit extends View {
     //当前选中行矩形
     private void drawRowRect(Canvas canvas) {
         Paint paint = paintMap.get("选中行");
-        canvas.drawRect(-viewX, cursorRowIndex * lineHeight + lineHeightDescent, getWidth() - viewX, (cursorRowIndex + 1) * lineHeight + lineHeightDescent, paint);
+        canvas.drawRect(-viewX,
+                cursorRowIndex * lineHeight + lineHeightDescent,
+                getWidth() - viewX,
+                (cursorRowIndex + 1) * lineHeight + lineHeightDescent,
+                paint);
     }
 
     private void drawRowNumber(Canvas canvas) {
@@ -512,6 +662,62 @@ public class CodeEdit extends View {
         tranX = paint.measureText(rowText);
         for (int i = startRow + 1; i <= stopRow + 1; i++) {
             canvas.drawText(String.valueOf(i), 0, i * lineHeight, paint);
+        }
+    }
+
+    private void drawSelectTextRect(Canvas canvas) {
+        Paint paint = paintMap.get("行号");
+        if (firstSelectRow == secondSelectRow) {
+            char[] curTextChars = textList.get(firstSelectRow).toCharArray();
+            float firstWidth = 0f;
+            for (int i = 0; i < firstSelectCol + 1; i++) {
+                firstWidth = firstWidth + paint.measureText(String.valueOf(curTextChars[i]));
+            }
+            float secondWidth = firstWidth;
+            for (int i = firstSelectCol + 1; i < secondSelectCol + 1; i++) {
+                secondWidth = secondWidth + paint.measureText(String.valueOf(curTextChars[i]));
+            }
+            canvas.drawRect(firstWidth,
+                    firstSelectRow * lineHeight + lineHeightDescent,
+                    secondWidth,
+                    (firstSelectRow + 1) * lineHeight + lineHeightDescent,
+                    paint);
+        } else {
+            char[] firstRowText = textList.get(firstSelectRow).toCharArray();
+            char[] secondRowText = textList.get(secondSelectRow).toCharArray();
+            float firstWidth = 0f;
+            float secondWidth = 0f;
+            for (int i = 0; i < firstSelectCol + 1; i++) {
+                firstWidth = firstWidth + paint.measureText(String.valueOf(firstRowText[i]));
+            }
+            for (int i = 0; i < secondSelectCol + 1; i++) {
+                secondWidth = secondWidth + paint.measureText(String.valueOf(secondRowText[i]));
+            }
+
+            for (int i = firstSelectRow; i <= secondSelectRow; i++) {
+                if (i == firstSelectRow) {
+                    //第一行
+                    canvas.drawRect(firstWidth,
+                            firstSelectRow * lineHeight + lineHeightDescent,
+                            getWidth() - viewY,
+                            (firstSelectRow + 1) * lineHeight + lineHeightDescent,
+                            paint);
+                } else if (i == secondSelectRow) {
+                    //最后一行
+                    canvas.drawRect(-viewX,
+                            i * lineHeight + lineHeightDescent,
+                            secondWidth,
+                            (i + 1) * lineHeight + lineHeightDescent,
+                            paint);
+                } else {
+                    //其它行
+                    canvas.drawRect(-viewX,
+                            i * lineHeight + lineHeightDescent,
+                            getWidth() - viewY,
+                            (i + 1) * lineHeight + lineHeightDescent,
+                            paint);
+                }
+            }
         }
     }
 
@@ -529,7 +735,17 @@ public class CodeEdit extends View {
                 if (i == cursorPositionInRowIndex) break;
             }
             float w = paint.measureText(buffer.toString());
-            canvas.drawLine(w, cursorRowIndex * lineHeight + lineHeightDescent, w, (cursorRowIndex + 1) * lineHeight + lineHeightDescent, paint);
+            canvas.drawLine(w,
+                    cursorRowIndex * lineHeight + lineHeightDescent,
+                    w,
+                    (cursorRowIndex + 1) * lineHeight + lineHeightDescent,
+                    paint);
+            //避免重复计算       算了，避免不了
+            /*canvas.drawLine(cursorViewX,
+                    cursorRowIndex * lineHeight + lineHeightDescent,
+                    cursorViewX,
+                    (cursorRowIndex + 1) * lineHeight + lineHeightDescent,
+                    paint);*/
         }
     }
 
