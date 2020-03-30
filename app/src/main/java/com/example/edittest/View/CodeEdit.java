@@ -212,7 +212,7 @@ public class CodeEdit extends View {
         paintMap.put("关键字", paintBuild(Color.MAGENTA));
         paintMap.put("字符串", paintBuild(Color.RED));
         paintMap.put("注释", paintBuild(Color.GRAY));
-        paintMap.put("类", paintBuild(Color.rgb(87, 96, 105)));
+        paintMap.put("类", paintBuild(Color.rgb(160, 191, 214)));
         paintMap.put("变量", paintBuild(Color.rgb(247, 68, 97)));
         paintMap.put("方法", paintBuild(Color.rgb(227, 179, 37)));
         paintMap.put("数字", paintBuild(Color.rgb(147, 224, 255)));

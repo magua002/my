@@ -16,11 +16,11 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />-->
 
-    <com.example.edittest.CodeEdit
+    <com.example.edittest.View.CodeEdit
         android:id="@+id/codeEdit"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         <requestFocus/>
-    </com.example.edittest.CodeEdit>
+    </com.example.edittest.View.CodeEdit>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

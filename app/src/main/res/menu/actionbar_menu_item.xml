@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_copy"
+        android:title="复制"
+        android:icon="@mipmap/menu_copy"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_paste"
+        android:title="粘贴"
+        android:icon="@mipmap/menu_paste"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/menu_cut"
+        android:title="剪切"
+        android:icon="@mipmap/menu_cut"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/menu_undo"
+        android:title="撤销" />
+
+    <item
+        android:id="@+id/menu_redo"
+        android:title="恢复" />
+</menu>

@@ -32,6 +32,8 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-
-    //implementation 'com.github.javaparser:javaparser-core-serialization:3.15.12'
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'], exclude: [])
+    /*implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.15.14'{
+        exclude group: 'com.google.guava'
+    }*/
 }
