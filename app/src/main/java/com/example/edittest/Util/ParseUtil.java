@@ -7,36 +7,74 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class ParseUtil {
-    private List<String> classList = new ArrayList<>();
     private List<String> globalVariableList = new ArrayList<>();
+    private List<String> importClassList = new ArrayList<>();
+    private String packageName;
+    private CompilationUnit compilationUnit;
 
     public void parse(InputStream inputStream) {
-        CompilationUnit compilationUnit = StaticJavaParser.parse(inputStream);
+        compilationUnit = StaticJavaParser.parse(inputStream);
+        parse();
+    }
+
+    public void parse(File file) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(file);
+            parse(fileInputStream);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void parse() {
+        //导入类
+        compilationUnit.getImports().forEach(importDeclaration -> {
+            String name = importDeclaration.getNameAsString();
+            importClassList.add(name);
+            int index = name.lastIndexOf('.');
+            if (index != -1 && index < name.length()) {
+                importClassList.add(name.substring(index + 1));
+            }
+        });
+        //全局变量
         compilationUnit.findAll(ClassOrInterfaceDeclaration.class).forEach(classOrInterfaceDeclaration -> {
             classOrInterfaceDeclaration.getFields().forEach(fieldDeclaration -> {
                 fieldDeclaration.getVariables().forEach(variableDeclarator -> {
                     String var = variableDeclarator.getNameAsString();
                     globalVariableList.add(var);
-                    System.out.println("全局变量："+var);
                 });
             });
         });
     }
 
     public void parse(String code) {
-        CompilationUnit compilationUnit = StaticJavaParser.parse(code);
+        try {
+            compilationUnit = StaticJavaParser.parse(code);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+        //导入类
+        importClassList.clear();
+        compilationUnit.getImports().forEach(importDeclaration -> {
+            String name = importDeclaration.getNameAsString();
+            importClassList.add(name);
+        });
+        //全局变量
+        globalVariableList.clear();
         compilationUnit.findAll(ClassOrInterfaceDeclaration.class).forEach(classOrInterfaceDeclaration -> {
             classOrInterfaceDeclaration.getFields().forEach(fieldDeclaration -> {
                 fieldDeclaration.getVariables().forEach(variableDeclarator -> {
                     String var = variableDeclarator.getNameAsString();
                     globalVariableList.add(var);
-                    System.out.println("全局变量："+var);
                 });
             });
         });
@@ -44,7 +82,7 @@ public class ParseUtil {
 
     public void parseImport(List<String> list) {
 
-        classList.add("String");
+        importClassList.add("String");
 
         for (String line : list) {
             if (!TextUtils.isEmpty(line)) {
@@ -67,7 +105,7 @@ public class ParseUtil {
                         line = line.replace(";", "");
                         String cla = line.substring(index + 1);
                         System.out.println("类：" + cla);
-                        classList.add(cla);
+                        importClassList.add(cla);
                     }
                 } else if (line.startsWith("package")) {
                     continue;
@@ -80,17 +118,21 @@ public class ParseUtil {
     }
 
     public boolean isClassName(String className) {
-        for (String name : classList) {
-            if (name.equals(className)) {
-                return true;
-            }
+        Iterator<String> iterator = importClassList.iterator();
+        while (iterator.hasNext()) {
+            String name = iterator.next();
+            int index = name.lastIndexOf('.');
+            name = name.substring(index + 1);
+            if (name.equals(className)) return true;
         }
         return false;
     }
 
     public boolean isGlobalVariable(String var) {
-        for (String v : globalVariableList) {
-            if (v.equals(var)) return true;
+        Iterator<String> iterator = globalVariableList.iterator();
+        while (iterator.hasNext()) {
+            String name = iterator.next();
+            if (name.equals(var)) return true;
         }
         return false;
     }

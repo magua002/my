@@ -1,7 +1,0 @@
-<root>
-    <item name='com.github.javaparser.JavaParser com.github.javaparser.ParseResult&lt;com.github.javaparser.ast.CompilationUnit&gt; parse(java.io.File)'>
-        <annotation name='org.jetbrains.annotations.Contract'>
-            <val val="&quot;_-&gt;new&quot;"/>
-        </annotation>
-    </item>
-</root>
