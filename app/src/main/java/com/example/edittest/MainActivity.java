@@ -1,8 +1,15 @@
 package com.example.edittest;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
                 codeEdit.openFile(file);
             }
         });
+
+        checkPermisson();
     }
 
     @Override
@@ -80,4 +89,45 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, RunJavaActivity.class);
         startActivity(intent);
     }
+
+
+    private static final String[] permissions = {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.INTERNET
+    };
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public void checkPermisson(){
+        boolean flag=true;//默认全部被申请过
+        for(int i=0;i<permissions.length;i++){//只要有一个没有申请成功
+            if(!(ActivityCompat.checkSelfPermission(this,permissions[i])== PackageManager.PERMISSION_GRANTED)){
+                flag=false;
+            }
+        }
+        if(!flag){
+            //动态申请权限
+            requestPermissions(permissions,100);
+        }
+    }
+
+    //动态申请权限的结果
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(requestCode==100){
+            boolean flag=true;
+            for(int i=0;i<grantResults.length;i++){
+                if(grantResults[i]!=PackageManager.PERMISSION_GRANTED){
+                    flag=false;
+                }
+            }
+            if(flag){
+                Toast.makeText(this, "ok ", Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(this, "error", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+
 }
