@@ -28,6 +28,7 @@ public class RunJavaActivity extends AppCompatActivity {
         runJava();
     }
 
+
     private void runJava() {
 
         new Thread(() -> {
@@ -40,15 +41,18 @@ public class RunJavaActivity extends AppCompatActivity {
                 System.setOut(new PrintStream(runEditView.getOut()));
                 System.setErr(new PrintStream(runEditView.getErr()));
 
-                RunJavaUtil.compile();
-                RunJavaUtil.dex();
+                if (!RunJavaUtil.compile()) throw new Exception("编译失败");
+                if (!RunJavaUtil.dex()) throw new Exception("dex失败");
+
+                System.out.println("开始运行");
+                System.out.println("--------------------------------");
 
                 DexClassLoader dexClassLoader = new DexClassLoader("/storage/emulated/0/麻瓜/java项目测试/classes/dex/classes.dex",
                         "/storage/emulated/0/麻瓜/java项目测试/classes/dex/output/",
                         null,
                         getClassLoader());
                 Class mainClass=dexClassLoader.loadClass("Main");
-                Method mainMethod=mainClass.getMethod("Main",String[].class);
+                Method mainMethod=mainClass.getMethod("main",String[].class);
                 mainMethod.invoke(null,(Object)new String[]{});
 
             } catch (Exception e) {

@@ -37,17 +37,11 @@ public class MainActivity extends AppCompatActivity {
 
         //DexClassLoader dexClassLoader=new DexClassLoader("/storage/emulated/0/麻瓜/EcjNeed/EcjNeed.dex","/storage/emulated/0/麻瓜/EcjNeed/OutPut",null,getClassLoader());
 
+        checkPermisson();
         codeEdit = findViewById(R.id.codeEdit);
         textExec = codeEdit.getTextExecInterface();
-        codeEdit.post(new Runnable() {
-            @Override
-            public void run() {
-                File file=new File("/storage/emulated/0/麻瓜/java项目测试/src/Main.java");
-                codeEdit.openFile(file);
-            }
-        });
-
-        checkPermisson();
+        File file = new File("/storage/emulated/0/麻瓜/java项目测试/src/Main.java");
+        codeEdit.openFile(file);
     }
 
     @Override
@@ -97,16 +91,16 @@ public class MainActivity extends AppCompatActivity {
     };
 
     @RequiresApi(api = Build.VERSION_CODES.M)
-    public void checkPermisson(){
-        boolean flag=true;//默认全部被申请过
-        for(int i=0;i<permissions.length;i++){//只要有一个没有申请成功
-            if(!(ActivityCompat.checkSelfPermission(this,permissions[i])== PackageManager.PERMISSION_GRANTED)){
-                flag=false;
+    public void checkPermisson() {
+        boolean flag = true;//默认全部被申请过
+        for (int i = 0; i < permissions.length; i++) {//只要有一个没有申请成功
+            if (!(ActivityCompat.checkSelfPermission(this, permissions[i]) == PackageManager.PERMISSION_GRANTED)) {
+                flag = false;
             }
         }
-        if(!flag){
+        if (!flag) {
             //动态申请权限
-            requestPermissions(permissions,100);
+            requestPermissions(permissions, 100);
         }
     }
 
@@ -114,17 +108,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(requestCode==100){
-            boolean flag=true;
-            for(int i=0;i<grantResults.length;i++){
-                if(grantResults[i]!=PackageManager.PERMISSION_GRANTED){
-                    flag=false;
+        if (requestCode == 100) {
+            boolean flag = true;
+            for (int i = 0; i < grantResults.length; i++) {
+                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    flag = false;
                 }
             }
-            if(flag){
-                Toast.makeText(this, "ok ", Toast.LENGTH_SHORT).show();
-            }else{
+            if (flag) {
+                //Toast.makeText(this, "ok ", Toast.LENGTH_SHORT).show();
+                File file = new File("/storage/emulated/0/麻瓜/java项目测试/src/Main.java");
+                codeEdit.openFile(file);
+            } else {
                 Toast.makeText(this, "error", Toast.LENGTH_SHORT).show();
+                System.exit(0);
             }
         }
     }

@@ -78,7 +78,7 @@ public class CodeEdit extends View implements AutoCompleteInterface {
     //视图Y轴
     //private int viewY = 0;
     //滑动
-    private Scroller scroller;
+    //private Scroller scroller;
     //文本偏移量
     private float tranX = 100;
     //画笔集合
@@ -131,7 +131,7 @@ public class CodeEdit extends View implements AutoCompleteInterface {
     public CodeEdit(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         //滑动
-        scroller = new Scroller(context);
+        //scroller = new Scroller(context);
         //自动补全框
         autoCompletePopupWindow = new AutoCompletePopupWindow(this);
         //加载画笔
@@ -212,19 +212,6 @@ public class CodeEdit extends View implements AutoCompleteInterface {
 
     private void parseAndPostInvalidata() {
 
-        /*if (textList!=null&&parseUtil!=null&&!isParseing()){
-            new Thread(()->{
-                setParseing(true);
-                Iterator<String> iterator=textList.iterator();
-                StringBuffer buffer=new StringBuffer();
-                while (iterator.hasNext()){
-                    buffer.append(iterator.next()).append("\r\n");
-                }
-                parseUtil.parse(buffer.toString());
-                postInvalidate();
-                setParseing(false);
-            }).start();
-        }*/
     }
 
     private synchronized boolean isParseing() {
@@ -272,7 +259,7 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                 if (heig_low > heig_d) {
                     //viewY = viewY - (heig_low - heig_d);
                     //scroller.startScroll(getScrollX(), getScrollY(), 0, (heig_low - heig_d));
-                    scrollBy(0,(heig_low - heig_d));
+                    scrollBy(0, (heig_low - heig_d));
                     postInvalidate();
                 } else {
                     if (autoCompletePopupWindow != null && autoCompletePopupWindow.isShow())
@@ -413,6 +400,7 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                 textList.set(cursorRowIndex, stringBuffer.toString());
             }
             cursorPositionInRowIndex += text.length();
+            sureCursorVisible();
             postInvalidate();
             parseAndPostInvalidata();
             return true;
@@ -483,10 +471,12 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                         int heig_d = getHeight() - softHeight;
                         if (heig_low > heig_d) {
                             //viewY = viewY - (heig_low - heig_d);
-                            scroller.startScroll(getScrollX(), getScrollY(), 0, (heig_low - heig_d));
+                            //scroller.startScroll(getScrollX(), getScrollY(), 0, (heig_low - heig_d));
+                            scrollBy(0, (heig_low - heig_d));
                         }
                         break;
                 }
+                sureCursorVisible();
                 invalidate();
                 parseAndPostInvalidata();
             }
@@ -496,6 +486,7 @@ public class CodeEdit extends View implements AutoCompleteInterface {
         @Override
         public boolean deleteSurroundingText(int beforeLength, int afterLength) {
             deleteText();
+            sureCursorVisible();
             invalidate();
             return true;
         }
@@ -588,9 +579,40 @@ public class CodeEdit extends View implements AutoCompleteInterface {
         return buffer.toString();
     }
 
+    double dis=-1;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (textList.size() == 0) return false;
+
+        if (event.getPointerCount()==2){
+            switch (event.getAction()){
+                case MotionEvent.ACTION_DOWN:
+                    double dx=Math.pow((event.getX(0)-event.getX(1)),2);
+                    double dy=Math.pow((event.getY(0)-event.getY(1)),2);
+                    dis=Math.sqrt(dx+dy);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    double dxM=Math.pow((event.getX(0)-event.getX(1)),2);
+                    double dyM=Math.pow((event.getY(0)-event.getY(1)),2);
+                    double disM =Math.sqrt(dxM+dyM);
+                    textSize+=(int) (disM-dis)/100;
+                    Log.d("二指","textSize:"+textSize);
+                    Log.d("偏移差","disM:"+disM);
+                    if (textSize>60){
+                        textSize=60;
+                    }else if (textSize<30){
+                        textSize=30;
+                    }
+                    initPaint();
+                    computeLineHeight();
+                    invalidate();
+                    break;
+                case MotionEvent.ACTION_UP:
+                    break;
+            }
+            return true;
+        }
+
         return gestureDetector.onTouchEvent(event);
     }
 
@@ -754,27 +776,6 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                 scrollBy((int) distanceX, 0);
             }
 
-            //画布越界处理
-            if (textList.size() * lineHeight - 100 < /*-viewY*/getScrollY()) {
-                //viewY = -(textList.size() * lineHeight - 100);
-                setScrollY((textList.size() * lineHeight - 100));
-            }
-            Paint paint = paintMap.get("默认");
-            float maxLineWidth = paint.measureText(curMaxLine);
-            if (maxLineWidth - tranX - 100 < /*-viewX*/getScrollX()) {
-                //viewX = -(int) (maxLineWidth - tranX - 100);
-                setScrollX((int) (maxLineWidth - tranX - 100));
-            }
-
-            if (/*viewX*/(-getScrollX()) >= 0) {
-                //viewX = 0;
-                setScrollX(0);
-            }
-            if (/*viewY*/(-getScrollY()) >= 0) {
-                //viewY = 0;
-                setScrollY(0);
-            }
-
             invalidate();
             return true;
         }
@@ -798,47 +799,15 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                     //Log.d("valueAnim:", "value:" + value);
                     if (isDirection) {
                         //viewY = viewY + value;
-                        scrollBy(0,-value);
+                        scrollBy(0, -value);
                     } else {
                         //viewX = viewX + value;
-                        scrollBy(-value,0);
+                        scrollBy(-value, 0);
                     }
-                    //判断是否超出范围
-                    if (textList.size() * lineHeight - 100 < /*-viewY*/getScrollY()) {
-                        //viewY = -(textList.size() * lineHeight - 100);
-                        setScrollY(textList.size() * lineHeight - 100);
-                        //onflingValueAnimator.cancel();
-                    }
-                    Paint paint = paintMap.get("默认");
-                    float maxLineWidth = paint.measureText(curMaxLine);
-                    if (maxLineWidth - tranX - 100 < /*-viewX*/getScrollX()) {
-                        //viewX = -(int) (maxLineWidth - tranX - 100);
-                        setScrollX((int) (maxLineWidth - tranX - 100));
-                        //onflingValueAnimator.cancel();
-                    }
-                    if (/*viewX*/(-getScrollX()) >= 0) {
-                        //viewX = 0;
-                        setScrollX(0);
-                        //onflingValueAnimator.cancel();
-                    }
-
-                    if (/*viewY*/(-getScrollY()) >= 0) {
-                        //viewY = 0;
-                        setScrollY(0);
-                        //onflingValueAnimator.cancel();
-                    }
-
                     invalidate();
                 }
             });
             onflingValueAnimator.start();
-
-            /*if (isDirection) {
-                scroller.startScroll(getScrollX(), getScrollY(), 0, (int) (-velocityY / 50), 500);
-            } else {
-                scroller.startScroll(getScrollX(), getScrollY(), (int) (-velocityX / 50), 0, 500);
-            }*/
-
             return true;
         }
 
@@ -1188,6 +1157,22 @@ public class CodeEdit extends View implements AutoCompleteInterface {
         }
     }
 
+    //保证在输入时光标在可视区域内
+    private void sureCursorVisible() {
+        String curText = textList.get(cursorRowIndex);
+        Paint paint = paintMap.get("默认");
+        float w = paint.measureText(curText.substring(0, cursorPositionInRowIndex + 1))+tranX;
+        if ((w > getScrollX() + getWidth()) || w < getScrollX()) {
+            int x=(int) (w - getWidth() / 2);
+            int xx=w>getWidth()?x:0;
+            setScrollX(xx);
+        }
+        int h=cursorRowIndex*lineHeight+lineHeightDescent;
+        if (getScrollY()>h){
+            setScrollY(h);
+        }
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         //Log.d("onSizeChanged", "x:" + viewX + ",y:" + viewY);
@@ -1196,31 +1181,26 @@ public class CodeEdit extends View implements AutoCompleteInterface {
 
     @Override
     public void computeScroll() {
-        if (scroller.computeScrollOffset()) {
-            scrollTo(scroller.getCurrX(), scroller.getCurrY());
-            /*viewX=-scroller.getCurrX();
-            viewY=-scroller.getCurrY();*/
-            //画布越界处理
-            if (textList.size() * lineHeight - 100 < /*-viewY*/getScrollY()) {
-                //viewY = -(textList.size() * lineHeight - 100);
-                setScrollY(textList.size() * lineHeight - 100);
-            }
-            Paint paint = paintMap.get("默认");
-            float maxLineWidth = paint.measureText(curMaxLine);
-            if (maxLineWidth - tranX - 100 < /*-viewX*/getScrollX()) {
-                //viewX = -(int) (maxLineWidth - tranX - 100);
-                setScrollX((int) (maxLineWidth - tranX - 100));
-            }
 
-            if (/*viewX*/(-getScrollX()) >= 0) {
-                //viewX = 0;
-                setScrollX(0);
-            }
-            if (/*viewY*/(-getScrollY()) >= 0) {
-                //viewY = 0;
-                setScrollY(0);
-            }
-            invalidate();
+        //画布越界处理
+        if (textList.size() * lineHeight - 100 < /*-viewY*/getScrollY()) {
+            //viewY = -(textList.size() * lineHeight - 100);
+            setScrollY((textList.size() * lineHeight - 100));
+        }
+        Paint paint = paintMap.get("默认");
+        float maxLineWidth = paint.measureText(curMaxLine);
+        if (maxLineWidth - tranX - 100 < /*-viewX*/getScrollX()) {
+            //viewX = -(int) (maxLineWidth - tranX - 100);
+            setScrollX((int) (maxLineWidth - tranX - 100));
+        }
+
+        if (/*viewX*/(-getScrollX()) >= 0) {
+            //viewX = 0;
+            setScrollX(0);
+        }
+        if (/*viewY*/(-getScrollY()) >= 0) {
+            //viewY = 0;
+            setScrollY(0);
         }
     }
 
@@ -1243,7 +1223,6 @@ public class CodeEdit extends View implements AutoCompleteInterface {
         computeStartAndStop();
         //偏移到指定位置
         //canvas.translate(viewX, viewY);
-        Log.d("偏移值", "getScrollX:" + getScrollX());
         //画当前选中行矩形
         if (!isSelectedText()) drawRowRect(canvas);
         //画行号
@@ -1419,12 +1398,6 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                     w,
                     (cursorRowIndex + 1) * lineHeight + lineHeightDescent,
                     paint);
-            //避免重复计算       算了，避免不了
-            /*canvas.drawLine(cursorViewX,
-                    cursorRowIndex * lineHeight + lineHeightDescent,
-                    cursorViewX,
-                    (cursorRowIndex + 1) * lineHeight + lineHeightDescent,
-                    paint);*/
         }
     }
 

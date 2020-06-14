@@ -29,8 +29,6 @@ import com.example.edittest.Interface.RunJavaConsoleInterface;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -182,6 +180,7 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
         public boolean commitText(CharSequence text, int newCursorPosition) {
             inputString = inputString + text;
             cursorPositionInRowIndex = textList.get(textList.size() - 1).length() + inputString.length() - 1;
+            sureCursorVisible();
             invalidate();
             return true;
         }
@@ -214,6 +213,7 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
                         }
                         break;
                 }
+                sureCursorVisible();
                 invalidate();
             }
             return true;
@@ -222,6 +222,7 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
         @Override
         public boolean deleteSurroundingText(int beforeLength, int afterLength) {
             deleteText();
+            sureCursorVisible();
             invalidate();
             return true;
         }
@@ -353,6 +354,24 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
         }
     }
 
+    //保证在输入时光标在可视区域内
+    private void sureCursorVisible() {
+        int cursorRowIndex=textList.size()-1;
+        String curText = textList.get(cursorRowIndex);
+        Paint paint = paintMap.get("默认");
+        float w = paint.measureText(curText+inputString)+tranX;
+        if ((w > (-viewX) + getWidth()) || w < getScrollX()) {
+            int x=(int) (w - getWidth() / 2);
+            int xx=w>getWidth()?x:0;
+            //setScrollX(xx);
+            viewX=(-xx);
+        }
+        int h=cursorRowIndex*lineHeight+lineHeightDescent;
+        if ((-viewY)>h){
+            viewY=(-h);
+        }
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         Log.d("onSizeChanged", "x:" + viewX + ",y:" + viewY);
@@ -433,6 +452,7 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
         }
     }
 
+    @Deprecated
     private synchronized void inputTextToList(String text) {
         if (TextUtils.isEmpty(text)) return;
         int cursorRowIndex = textList.size() - 1;
@@ -485,6 +505,9 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
             if (bytes[bytes.length - 1] == '\n') textList.add("");
 
             cursorPositionInRowIndex = textList.get(textList.size() - 1).length() - 1;
+
+            sureLastLineVisible();
+            postInvalidate();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -498,6 +521,21 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
         }
     }
 
+    private void sureLastLineVisible(){
+        int lastLineY=textList.size()*lineHeight+lineHeightDescent;
+        if (((-viewY)+getHeight())<lastLineY){
+            viewY=-(lastLineY-getHeight());
+        }
+        //确定是否上移
+        int softHeight = getSoftKeyboardHeight();
+        int heig = lineHeight * ((textList.size() - 1) + 1);
+        int heig_low = heig + viewY + lineHeightDescent;
+        int heig_d = getHeight() - softHeight;
+        if (heig_low > heig_d) {
+            viewY = viewY - (heig_low - heig_d);
+        }
+    }
+
     @Override
     public void sendText(String input) {
         ((MyIn) getIn()).addData(input.getBytes());
@@ -505,13 +543,13 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
 
     @Override
     public void printOut(String out) {
-        inputTextToList(out);
+        inputTextToList(out.getBytes());
         postInvalidate();
     }
 
     @Override
     public void printErr(String err) {
-        inputTextToList(err);
+        inputTextToList(err.getBytes());
         postInvalidate();
     }
 
@@ -547,7 +585,8 @@ public class RunEditView extends View implements RunJavaConsoleInterface {
 
         @Override
         public int read() throws IOException {
-            return 0;
+            throw new IOException("我TM直接不给用这个方法");
+            //return 0;
         }
 
         @Override
