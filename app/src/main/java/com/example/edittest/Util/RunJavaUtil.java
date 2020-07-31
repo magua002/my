@@ -9,46 +9,47 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class RunJavaUtil {
-    public static boolean compile() {
+
+    public static boolean compile(String boot, String lib, String classes, String src) {
         boolean success = false;
         ByteArrayOutputStream info = new ByteArrayOutputStream();
         ByteArrayOutputStream error = new ByteArrayOutputStream();
         Main main = new Main(new PrintWriter(info), new PrintWriter(error), false, null, null);
         String arg[] = {
                 "-verbose",
-                "-bootclasspath", "/storage/emulated/0/麻瓜/android.jar",//类似于rt.jar
-                "-extdirs", "/storage/emulated/0/麻瓜/java项目测试/libs/",//第三方jar
-                "-classpath", "/storage/emulated/0/麻瓜/java项目测试/libs/",//java文件和第三方jar，多个用:隔开
-                "-d", "/storage/emulated/0/麻瓜/java项目测试/classes/",//class文件位置
-                "-1.6",
-                "-target","1.6",
-                "/storage/emulated/0/麻瓜/java项目测试/src/"
+                "-bootclasspath", boot/*"/storage/emulated/0/麻瓜/android.jar"*/,//类似于rt.jar
+                "-extdirs", lib/*"/storage/emulated/0/麻瓜/java项目测试/libs/"*/,//第三方jar
+                "-classpath", lib/*"/storage/emulated/0/麻瓜/java项目测试/libs/"*/,//java文件和第三方jar，多个用:隔开
+                "-d", classes/*"/storage/emulated/0/麻瓜/java项目测试/classes/"*/,//class文件位置
+                "-1.8",
+                "-target", "1.8",
+                src/*"/storage/emulated/0/麻瓜/java项目测试/src/"*/
         };
         success = main.compile(arg);
         System.out.println("编译结果:" + success);
-        System.out.println("信息：" + info.toString());
-        System.out.println("错误：" + error.toString());
+        System.out.println("信息：\n" + info.toString());
+        System.out.println("错误：\n" + error.toString());
 
         return success;
     }
 
-    public static boolean dex() {
+    public static boolean dex(String lib, String classes) {
         boolean success = false;
         String[] args = new String[]{
                 "--debug",
                 "--verbose",
                 "--min-sdk-version=27",
                 "--num-threads=" + Runtime.getRuntime().availableProcessors(),//核心数
-                "--output=" + "/storage/emulated/0/麻瓜/java项目测试/classes/dex/classes.dex",//classes.dex输出文件路径
-                "/storage/emulated/0/麻瓜/java项目测试/classes/",//class文件位置
-                "/storage/emulated/0/麻瓜/java项目测试/libs/"//第三方jar文件位置
+                "--output=" + classes + "/classes.dex"/*/classes.dex*/,//classes.dex输出文件路径
+                classes,//class文件位置
+                lib //第三方jar文件位置
         };
 
         try {
-            com.android.dx.command.dexer.Main.Arguments arguments=new com.android.dx.command.dexer.Main.Arguments();
-            Method parseMethod=arguments.getClass().getDeclaredMethod("parse", String[].class);
+            com.android.dx.command.dexer.Main.Arguments arguments = new com.android.dx.command.dexer.Main.Arguments();
+            Method parseMethod = arguments.getClass().getDeclaredMethod("parse", String[].class);
             parseMethod.setAccessible(true);
-            parseMethod.invoke(arguments,new Object[]{args});
+            parseMethod.invoke(arguments, new Object[]{args});
             int code = com.android.dx.command.dexer.Main.run(arguments);
             if (code != 0) {
                 success = false;

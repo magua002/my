@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
+import com.example.edittest.Util.JavaProjectUtil;
 import com.example.edittest.Util.RunJavaUtil;
 import com.example.edittest.View.RunEditView;
 
@@ -41,19 +42,23 @@ public class RunJavaActivity extends AppCompatActivity {
                 System.setOut(new PrintStream(runEditView.getOut()));
                 System.setErr(new PrintStream(runEditView.getErr()));
 
-                if (!RunJavaUtil.compile()) throw new Exception("编译失败");
-                if (!RunJavaUtil.dex()) throw new Exception("dex失败");
+                if (!RunJavaUtil.compile(JavaProjectUtil.getBoot().getPath(),
+                        JavaProjectUtil.getLib().getPath(),
+                        JavaProjectUtil.getClasses().getPath(),
+                        JavaProjectUtil.getSrc().getPath())) throw new Exception("编译失败");
+                if (!RunJavaUtil.dex(JavaProjectUtil.getLib().getPath(),
+                        JavaProjectUtil.getClasses().getPath())) throw new Exception("dex失败");
 
                 System.out.println("开始运行");
                 System.out.println("--------------------------------");
 
-                DexClassLoader dexClassLoader = new DexClassLoader("/storage/emulated/0/麻瓜/java项目测试/classes/dex/classes.dex",
-                        "/storage/emulated/0/麻瓜/java项目测试/classes/dex/output/",
+                DexClassLoader dexClassLoader = new DexClassLoader(JavaProjectUtil.getClasses().getPath() + "/classes.dex",
+                        JavaProjectUtil.getClasses().getPath() + "/dex/output/",
                         null,
                         getClassLoader());
-                Class mainClass=dexClassLoader.loadClass("Main");
-                Method mainMethod=mainClass.getMethod("main",String[].class);
-                mainMethod.invoke(null,(Object)new String[]{});
+                Class mainClass = dexClassLoader.loadClass("Main");
+                Method mainMethod = mainClass.getMethod("main", String[].class);
+                mainMethod.invoke(null, (Object) new String[]{});
 
             } catch (Exception e) {
                 e.printStackTrace();

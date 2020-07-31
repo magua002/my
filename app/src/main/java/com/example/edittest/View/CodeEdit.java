@@ -579,29 +579,30 @@ public class CodeEdit extends View implements AutoCompleteInterface {
         return buffer.toString();
     }
 
-    double dis=-1;
+    double dis = -1;
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (textList.size() == 0) return false;
 
-        if (event.getPointerCount()==2){
-            switch (event.getAction()){
+        if (event.getPointerCount() == 2) {
+            switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    double dx=Math.pow((event.getX(0)-event.getX(1)),2);
-                    double dy=Math.pow((event.getY(0)-event.getY(1)),2);
-                    dis=Math.sqrt(dx+dy);
+                    double dx = Math.pow((event.getX(0) - event.getX(1)), 2);
+                    double dy = Math.pow((event.getY(0) - event.getY(1)), 2);
+                    dis = Math.sqrt(dx + dy);
                     break;
                 case MotionEvent.ACTION_MOVE:
-                    double dxM=Math.pow((event.getX(0)-event.getX(1)),2);
-                    double dyM=Math.pow((event.getY(0)-event.getY(1)),2);
-                    double disM =Math.sqrt(dxM+dyM);
-                    textSize+=(int) (disM-dis)/100;
-                    Log.d("二指","textSize:"+textSize);
-                    Log.d("偏移差","disM:"+disM);
-                    if (textSize>60){
-                        textSize=60;
-                    }else if (textSize<30){
-                        textSize=30;
+                    double dxM = Math.pow((event.getX(0) - event.getX(1)), 2);
+                    double dyM = Math.pow((event.getY(0) - event.getY(1)), 2);
+                    double disM = Math.sqrt(dxM + dyM);
+                    textSize += (int) (disM - dis) / 100;
+                    Log.d("二指", "textSize:" + textSize);
+                    Log.d("偏移差", "disM:" + disM);
+                    if (textSize > 60) {
+                        textSize = 60;
+                    } else if (textSize < 30) {
+                        textSize = 30;
                     }
                     initPaint();
                     computeLineHeight();
@@ -1161,14 +1162,14 @@ public class CodeEdit extends View implements AutoCompleteInterface {
     private void sureCursorVisible() {
         String curText = textList.get(cursorRowIndex);
         Paint paint = paintMap.get("默认");
-        float w = paint.measureText(curText.substring(0, cursorPositionInRowIndex + 1))+tranX;
+        float w = paint.measureText(curText.substring(0, cursorPositionInRowIndex + 1)) + tranX;
         if ((w > getScrollX() + getWidth()) || w < getScrollX()) {
-            int x=(int) (w - getWidth() / 2);
-            int xx=w>getWidth()?x:0;
+            int x = (int) (w - getWidth() / 2);
+            int xx = w > getWidth() ? x : 0;
             setScrollX(xx);
         }
-        int h=cursorRowIndex*lineHeight+lineHeightDescent;
-        if (getScrollY()>h){
+        int h = cursorRowIndex * lineHeight + lineHeightDescent;
+        if (getScrollY() > h) {
             setScrollY(h);
         }
     }
@@ -1604,13 +1605,13 @@ public class CodeEdit extends View implements AutoCompleteInterface {
                         float w = paint.measureText(line.substring(0, f_col));
                         canvas.drawText(key, w, (row + 1) * lineHeight, classPaint);
                         //System.out.println("注解 " + f_col + "," + (col + 1) + " " + key);
-                    }/* else if (parseUtil.isClassName(key) || JavaWordUtil.isConstructor(f_col, col + 1, line)) {//类名
-                        float w = paint.measureText(line.substring(0, f_col));
-                        canvas.drawText(key, w, (row + 1) * lineHeight, classPaint);
-                        //System.out.println("类 " + f_col + "," + (col + 1) + " " + key);
                     } else if (JavaWordUtil.isNum(key)) {//数字
                         float w = paint.measureText(line.substring(0, f_col));
                         canvas.drawText(key, w, (row + 1) * lineHeight, numPaint);
+                    } /* else if (parseUtil.isClassName(key) || JavaWordUtil.isConstructor(f_col, col + 1, line)) {//类名
+                        float w = paint.measureText(line.substring(0, f_col));
+                        canvas.drawText(key, w, (row + 1) * lineHeight, classPaint);
+                        //System.out.println("类 " + f_col + "," + (col + 1) + " " + key);
                     } else if (parseUtil.isGlobalVariable(key)) {//全局变量
                         float w = paint.measureText(line.substring(0, f_col));
                         canvas.drawText(key, w, (row + 1) * lineHeight, varPaint);

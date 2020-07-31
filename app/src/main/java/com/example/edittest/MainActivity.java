@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.example.edittest.Interface.TextExecInterface;
+import com.example.edittest.Util.JavaProjectUtil;
 import com.example.edittest.View.CodeEdit;
 
 import java.io.File;
@@ -40,8 +41,12 @@ public class MainActivity extends AppCompatActivity {
         checkPermisson();
         codeEdit = findViewById(R.id.codeEdit);
         textExec = codeEdit.getTextExecInterface();
-        File file = new File("/storage/emulated/0/麻瓜/java项目测试/src/Main.java");
-        codeEdit.openFile(file);
+        File main = JavaProjectUtil.getMainJavaFile();
+        if (main == null || !main.exists()) {
+            JavaProjectUtil.createProject();
+            main = JavaProjectUtil.getMainJavaFile();
+        }
+        codeEdit.openFile(main);
     }
 
     @Override
@@ -93,7 +98,8 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.M)
     public void checkPermisson() {
         boolean flag = true;//默认全部被申请过
-        for (int i = 0; i < permissions.length; i++) {//只要有一个没有申请成功
+        for (int i = 0; i < permissions.length; i++) {
+            //只要有一个没有申请成功
             if (!(ActivityCompat.checkSelfPermission(this, permissions[i]) == PackageManager.PERMISSION_GRANTED)) {
                 flag = false;
             }
@@ -117,14 +123,18 @@ public class MainActivity extends AppCompatActivity {
             }
             if (flag) {
                 //Toast.makeText(this, "ok ", Toast.LENGTH_SHORT).show();
-                File file = new File("/storage/emulated/0/麻瓜/java项目测试/src/Main.java");
-                codeEdit.openFile(file);
+                /*File file = new File("/storage/emulated/0/麻瓜/java项目测试/src/Main.java");
+                codeEdit.openFile(file);*/
+                File main = JavaProjectUtil.getMainJavaFile();
+                if (!main.exists()) {
+                    JavaProjectUtil.createProject();
+                    main = JavaProjectUtil.getMainJavaFile();
+                }
+                codeEdit.openFile(main);
             } else {
                 Toast.makeText(this, "error", Toast.LENGTH_SHORT).show();
                 System.exit(0);
             }
         }
     }
-
-
 }
